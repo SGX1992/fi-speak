@@ -1,0 +1,16 @@
+{
+  "_comment": "Motion backgrounds per event id; _shared is offered on every event, after the event's own. `poster` is a still used as the picker thumbnail — the clips themselves are never fetched to draw the list.",
+  "hamburg": [
+    { "file": "hamburg-1.mp4", "label": "Harbour", "poster": "poster-hamburg-1.jpg" }
+  ],
+  "munich-climate-week": [
+    { "file": "aerial.mp4", "label": "Aerial", "poster": "poster-aerial.jpg" }
+  ],
+  "conference": [
+    { "file": "aerial.mp4", "label": "Aerial", "poster": "poster-aerial.jpg" }
+  ],
+  "_shared": [
+    { "file": "leaves.mp4", "label": "Leaves", "poster": "poster-leaves.jpg" },
+    { "file": "deep.mp4",   "label": "Deep",   "poster": "poster-deep.jpg" }
+  ]
+}

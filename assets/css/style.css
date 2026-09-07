@@ -1,0 +1,656 @@
+/* Poppins is the Footprint Intelligence typeface, self-hosted so the poster
+   renders identically offline and so a canvas export can never race a font
+   request. Latin subset only — the events are European and the file is 8 KB. */
+@font-face{font-family:Poppins;font-style:normal;font-weight:400;font-display:swap;
+  src:url(../fonts/poppins-400.woff2) format('woff2')}
+@font-face{font-family:Poppins;font-style:normal;font-weight:500;font-display:swap;
+  src:url(../fonts/poppins-500.woff2) format('woff2')}
+@font-face{font-family:Poppins;font-style:normal;font-weight:600;font-display:swap;
+  src:url(../fonts/poppins-600.woff2) format('woff2')}
+@font-face{font-family:Poppins;font-style:normal;font-weight:700;font-display:swap;
+  src:url(../fonts/poppins-700.woff2) format('woff2')}
+
+*{box-sizing:border-box;margin:0;padding:0}
+/* .field sets display:flex, which outranks the UA's [hidden] rule. */
+[hidden]{display:none!important}
+
+:root{
+  /* The page is held at 98% black so nothing in the chrome competes with the
+     poster. With the fills this dark, structure is carried by the borders
+     rather than by contrasting greys — lighten a fill here and the badge
+     immediately stops being the brightest thing on screen. */
+  --bg:#050505;
+  --card:#0B0B0B;
+  --input-bg:#090909;
+  --input-border:#242424;
+  --surface:#0E0E0E;
+  --surface-hi:#191919;
+  --accent:#00EB62;
+  --text:#ffffff;
+  --text-dim:#9A9A9A;
+  /* One lever for the whole desktop layout — see the desktop block. */
+  --ui-scale:.9;
+  /* The accent, broken out so the stylesheet carries no literal brand colour.
+     --accent-rgb feeds rgba() tints, --accent-dim is the trough of the running
+     highlight, --accent-edge the border a control takes on hover. */
+  --accent-rgb:0,235,98;
+  --accent-dim:#00521F;
+  --accent-edge:#2E4A3A;
+  --font:Poppins,Inter,"Helvetica Neue",Helvetica,Arial,sans-serif;
+}
+
+html,body{
+  background:var(--bg);color:var(--text);font-family:var(--font);
+  min-height:100%;max-width:100%;
+  /* `clip`, not `hidden`. Both stop sideways overflow, but `hidden` also turns
+     the element into a scroll container — and every position:sticky inside then
+     resolves against that container instead of the viewport, so none of them
+     ever engage. That is what kept the poster preview from holding its place
+     while the panel scrolled past it. */
+  overflow-x:clip;
+  -webkit-font-smoothing:antialiased;
+}
+img,canvas,svg{max-width:100%}
+
+.layout{
+  display:grid;
+  grid-template-columns:minmax(320px,440px) minmax(360px,600px);
+  grid-template-areas:"brand preview" "panel preview" "actions preview";
+  align-content:start;column-gap:56px;row-gap:24px;
+  justify-content:center;align-items:start;
+  padding:48px clamp(20px,5vw,72px);max-width:1240px;margin:0 auto;
+}
+/* The sheet is only a container on small screens. `display:contents` makes it
+   vanish from the layout everywhere else, so the desktop grid is untouched. */
+.sheet{display:contents}
+.sheet__grab,.dock{display:none}
+
+.panel{grid-area:panel;display:flex;flex-direction:column;gap:18px;padding-top:8px}
+.preview{grid-area:preview;position:sticky;top:48px}
+.actions-area{grid-area:actions;display:flex;flex-direction:column;gap:12px}
+.actions-bar{display:contents}
+
+/* ---------- brand ----------
+   Its own grid area rather than a child of the panel: on phones the panel
+   travels off-screen inside the sheet, and anything inside it goes along. */
+.brand{grid-area:brand;display:flex;align-items:baseline;gap:12px;margin-bottom:26px}
+/* Wider than the DDX mark it replaced: this wordmark is two lines deep, so the
+   "intelligence" under it needs the extra width to stay legible at all. */
+.brand-mark{width:118px;height:auto;display:block}
+
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ---------- format switch ---------- */
+.segmented{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:5px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:12px}
+.seg{cursor:pointer}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg span{
+  position:relative;display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:11px 16px;border-radius:8px;
+  color:var(--text-dim);font-size:15px;font-weight:500;transition:color .15s;
+}
+.seg span svg{width:17px;height:17px;flex:0 0 auto}
+.seg input:checked+span{color:#0B0B0B;font-weight:600}
+.seg input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- fields ---------- */
+.field{display:flex;flex-direction:column;gap:8px}
+.field>span{font-weight:600;font-size:15px;letter-spacing:.01em}
+.field input[type=text]{
+  background:var(--input-bg);border:1px solid var(--input-border);border-radius:10px;
+  color:var(--text);font-family:var(--font);font-size:17px;padding:14px 16px;
+  outline:none;transition:border-color .15s;
+}
+.field input[type=text]:focus{border-color:var(--accent)}
+.field input[type=text]::placeholder{color:#4A4A4A}
+
+/* ---------- edition combobox ---------- */
+.combo{position:relative}
+#editionInput{display:none}
+
+.combo__btn{
+  width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  background:var(--input-bg);border:1px solid var(--input-border);border-radius:10px;
+  color:var(--text);font-family:var(--font);text-align:left;
+  padding:13px 14px;cursor:pointer;
+}
+/* The bar and the sheen live here rather than in the motion block because the
+   bar is also how the list marks the current edition — same language in both. */
+.combo__btn{position:relative;overflow:hidden}
+.combo__btn::before{
+  content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:var(--accent);transform:scaleY(0);transform-origin:center;
+}
+.combo__btn::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(105deg,transparent 35%,rgba(var(--accent-rgb),.10) 50%,transparent 65%);
+  transform:translateX(-120%);
+}
+.combo__btn:hover{border-color:var(--accent-edge);background:#101010}
+.combo__btn:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.12)}
+.combo.is-open .combo__btn{border-color:var(--accent)}
+
+/* One line: the city carries the weight, the date trails it in a lighter tone. */
+.combo__value{display:flex;align-items:baseline;gap:9px;min-width:0}
+.combo__value b{font-size:16px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto}
+.combo__value em{font-style:normal;font-size:12.5px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.combo__chev{display:flex;color:var(--text-dim);flex:0 0 auto}
+.combo__chev svg{width:18px;height:18px}
+
+.combo__list{
+  position:absolute;z-index:30;top:calc(100% + 6px);left:0;right:0;
+  max-height:302px;overflow:auto;overscroll-behavior:contain;
+  list-style:none;margin:0;padding:6px;
+  background:#0A0A0A;border:1px solid var(--input-border);border-radius:12px;
+  box-shadow:0 18px 44px rgba(0,0,0,.6);
+}
+.combo__opt{
+  display:flex;align-items:baseline;gap:9px;
+  padding:9px 12px;border-radius:8px;cursor:pointer;position:relative;
+}
+.combo__opt b{font-size:15px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.combo__opt em{font-style:normal;font-size:12.5px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:auto;flex:0 0 auto}
+.combo__opt.is-active{background:rgba(255,255,255,.07)}
+.combo__opt[aria-selected="true"] b{color:var(--accent)}
+/* A hairline marks the current edition without stealing the active highlight. */
+.combo__opt[aria-selected="true"]::before{
+  content:"";position:absolute;left:4px;top:9px;bottom:9px;width:2px;
+  border-radius:2px;background:var(--accent);
+}
+
+/* Everything downstream of the edition waits for it. Greyed and inert rather
+   than hidden, so the shape of what's coming is visible from the start. */
+body.needs-edition .needs-edition{opacity:.34;pointer-events:none;filter:saturate(.3)}
+body.needs-edition .needs-edition *{cursor:default!important}
+.edition-hint{font-size:12.5px;color:var(--accent);margin-top:-6px}
+body:not(.needs-edition) .edition-hint{display:none}
+
+/* ---------- headline chips ---------- */
+.chips{display:flex;gap:5px}
+.chip{flex:1 1 0;min-width:0;cursor:pointer}
+.chip input{position:absolute;opacity:0;pointer-events:none}
+.chip span{
+  display:flex;align-items:center;justify-content:center;
+  padding:9px 4px;border-radius:9px;
+  border:1px solid var(--input-border);background:var(--input-bg);
+  color:var(--text-dim);font-size:12px;font-weight:500;white-space:nowrap;
+}
+.chip input:checked+span{border-color:var(--accent);color:var(--accent);background:rgba(var(--accent-rgb),.07)}
+/* The hide option is an icon, so it takes only the room it needs and gives the
+   three worded options the rest. */
+.chip--icon{flex:0 0 auto}
+.chip--icon span{padding:9px 11px}
+.chip--icon svg{width:15px;height:15px}
+.chip input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- photo affordance over the poster ----------
+   Sits on the portrait card, in the poster's own proportions, but stops short of
+   the card's lower third — the date is printed there, on the card's own fade, and
+   a scrim running the full height would grey it out. It fades to nothing at its
+   bottom edge so there is no hard line across the photo either.
+
+   The layer ignores the pointer so dragging the photo still works everywhere the
+   two buttons aren't. */
+.card-overlay{
+  position:absolute;pointer-events:none;
+  left:24.63%;top:20.15%;width:50.74%;height:36.9%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  border-radius:2.6% 2.6% 0 0;opacity:0;
+  background:linear-gradient(rgba(5,5,5,.68) 0%,rgba(5,5,5,.62) 58%,rgba(5,5,5,0) 100%);
+}
+/* Driven by the pointer test in main.js, not by :hover on the whole poster —
+   the overlay ignores the pointer, and the card is only part of the canvas. */
+.card-overlay.is-on,.card-overlay:focus-within{opacity:1}
+.card-cta{
+  pointer-events:auto;display:inline-flex;align-items:center;gap:7px;
+  padding:9px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.28);
+  background:rgba(10,10,10,.72);backdrop-filter:blur(6px);
+  color:#fff;font-family:var(--font);font-size:12.5px;font-weight:500;cursor:pointer;
+  white-space:nowrap;
+}
+.card-cta svg{width:15px;height:15px}
+.card-cta:hover{border-color:var(--accent);color:var(--accent)}
+.card-hint{margin-top:2px;font-size:11.5px;color:rgba(255,255,255,.62);pointer-events:none}
+/* While a file is over the poster the whole card answers, not just the buttons. */
+.card-overlay.is-drop{background:linear-gradient(rgba(5,5,5,.8) 0%,rgba(5,5,5,.7) 58%,rgba(5,5,5,.15) 100%)}
+.card-overlay.is-drop .card-hint{color:var(--accent)}
+/* The drop ring is drawn into the canvas by poster.js, not laid over it — see
+   drawCard(). An overlay here would sit above the poster's own gradient and cut
+   through the date. */
+
+/* ---------- upload progress ---------- */
+.upload-bar{display:flex;flex-direction:column;gap:5px}
+.upload-bar__track{height:3px;border-radius:2px;background:var(--input-border);overflow:hidden}
+.upload-bar__track i{display:block;height:100%;width:0;background:var(--accent);border-radius:2px}
+.upload-bar span{font-size:11.5px;color:var(--text-dim)}
+
+/* ---------- background picker ----------
+   One row, always. The tiles share whatever width the panel has, so three sit
+   comfortably and seven still fit — capped so a short list doesn't balloon. */
+.thumbs{display:flex;gap:6px}
+.thumb{
+  position:relative;flex:1 1 0;min-width:0;max-width:82px;aspect-ratio:4/5;
+  border-radius:8px;overflow:hidden;
+  border:2px solid transparent;background:var(--input-bg);cursor:pointer;padding:0;
+  transition:border-color .15s,opacity .15s;opacity:.72;
+}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb:hover{opacity:1}
+.thumb[aria-checked="true"]{border-color:var(--accent);opacity:1}
+.thumb:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.thumb span{
+  position:absolute;left:0;right:0;bottom:0;padding:2px 3px;
+  font-size:8px;line-height:1.2;font-weight:500;letter-spacing:0;text-align:center;
+  color:#fff;background:linear-gradient(transparent,rgba(0,0,0,.85));
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+
+.photo-field{gap:12px}
+.sliders{display:flex;flex-direction:column;gap:10px}
+.slider{display:grid;grid-template-columns:74px 1fr;align-items:center;gap:12px;cursor:pointer}
+.slider em{font-style:normal;font-size:13px;color:var(--text-dim)}
+.slider input[type=range]{accent-color:var(--accent);width:100%;padding:0;border:none;background:transparent}
+
+/* ---------- photo ---------- */
+.photo-row{display:flex;gap:10px}
+.photo-btn{
+  flex:1;display:flex;align-items:center;justify-content:center;gap:10px;
+  background:var(--surface);color:#B4B4B4;border:none;border-radius:12px;padding:20px 16px;
+  font-family:var(--font);font-size:15px;cursor:pointer;transition:background .15s,color .15s;
+}
+.photo-btn:hover{background:var(--surface-hi);color:#fff}
+
+/* The running highlight that says "do this next", and it moves as the poster
+   gets made: the event picker wears it on load, because nothing downstream can
+   be chosen until an event is, and it hands over to the upload button the
+   moment one is picked. Only ever on one control at a time — two things
+   demanding attention is the same as none. */
+.attention{
+  position:relative;overflow:hidden;color:#fff;border:2px solid transparent;
+  background:linear-gradient(var(--surface),var(--surface)) padding-box,
+             linear-gradient(110deg,var(--accent),var(--accent-dim),var(--accent),var(--accent-dim),var(--accent)) border-box;
+  background-size:100% 100%,300% 100%;
+  animation:shine-border 2.6s linear infinite;
+}
+.attention::after{
+  content:"";position:absolute;inset:0;transform:translateX(-150%) skew(-20deg);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.14),transparent);
+  animation:shine-sweep 2.6s ease-in-out infinite;pointer-events:none;
+}
+/* The picker fills from --input-bg, not --surface, and its resting border is
+   1px — so the padding shrinks by the 1px the highlight's border adds, and the
+   control keeps its height instead of jumping when the glow arrives. */
+.combo__btn.attention{
+  background:linear-gradient(var(--input-bg),var(--input-bg)) padding-box,
+             linear-gradient(110deg,var(--accent),var(--accent-dim),var(--accent),
+                             var(--accent-dim),var(--accent)) border-box;
+  background-size:100% 100%,300% 100%;
+  padding:12px 13px;
+}
+@keyframes shine-border{to{background-position:0 0,300% 0}}
+@keyframes shine-sweep{55%,to{transform:translateX(150%) skew(-20deg)}}
+.photo-btn.has-photo{color:#fff;outline:1px solid var(--input-border)}
+#photoThumb{width:64px;height:64px;object-fit:cover;border-radius:12px;outline:1px solid var(--input-border);align-self:center}
+
+/* ---------- preview ---------- */
+.preview-label{display:none;font-size:12px;font-weight:600;letter-spacing:.3em;text-transform:uppercase;color:var(--text-dim);margin-bottom:12px}
+/* Against a near-black page the poster's own black would have no edge, so it
+   gets a hairline and a wider, softer shadow to lift it off the surface. */
+.badge-card{
+  position:relative;border-radius:18px;overflow:hidden;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,.055),          /* hairline, or the black has no edge */
+    0 30px 90px rgba(0,0,0,.85),               /* the weight that sets it on the page */
+    0 0 44px -10px rgba(var(--accent-rgb),.20),  /* close halo */
+    0 0 130px -34px rgba(var(--accent-rgb),.16); /* the wide, barely-there one */
+}
+#previewCanvas{display:block;width:100%;height:auto;touch-action:pan-y}
+
+/* ---------- actions ---------- */
+.actions{display:flex;gap:12px}
+.cta{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  background:var(--accent);color:#0B0B0B;border:none;border-radius:999px;
+  padding:14px 26px;font-family:var(--font);font-size:15px;font-weight:600;
+  white-space:nowrap;cursor:pointer;transition:background .15s,transform .1s,border-color .15s;
+}
+.cta:hover{background:#fff}
+.cta:active{transform:scale(.98)}
+.cta:disabled{opacity:.55;cursor:wait}
+.cta--ghost{background:transparent;color:#fff;border:1px solid var(--input-border)}
+.cta--ghost:hover{background:transparent;border-color:var(--accent);color:var(--accent)}
+.status{color:var(--text-dim);font-size:14px;line-height:1.4}
+.ticket-line{color:var(--text-dim);font-size:14px;margin-top:2px}
+.ticket-line a{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(var(--accent-rgb),.35)}
+.ticket-line a:hover{border-bottom-color:var(--accent)}
+
+/* ---------- webcam ---------- */
+dialog{border:none;border-radius:18px;background:var(--card);color:var(--text);padding:20px;max-width:560px;width:calc(100vw - 40px)}
+dialog::backdrop{background:rgba(0,0,0,.72)}
+.cam-wrap{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:4/3;background:#000}
+#camVideo{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+.cam-frame{position:absolute;inset:0;margin:auto;height:100%;aspect-ratio:3/4;border:2px dashed rgba(255,255,255,.55);border-radius:8px;pointer-events:none}
+.cam-actions{display:flex;justify-content:flex-end;gap:12px;margin-top:16px}
+.cam-actions .photo-btn{flex:0 0 auto;padding:14px 22px}
+
+/* ---------- desktop ----------
+   Everything here is set in px, which suits a tool this dense — but it also
+   means a Windows display at its usual 125% renders the whole thing a quarter
+   larger than it was drawn, and Macs at 100% were the only place it looked the
+   intended size. One scale on the container brings it back without re-tuning
+   forty separate values, and leaves a single knob to turn if it needs to move
+   again. */
+@media (min-width:881px){
+  .layout{
+    zoom:var(--ui-scale);
+    /* Two rows, not three: the actions move inside the sheet below. */
+    grid-template-areas:"brand preview" "panel preview";
+  }
+
+  /* On phones the sheet is the slide-up panel; on desktop it used to vanish with
+     display:contents. It stays a real column here instead, because a sticky
+     element needs a containing block taller than itself to have anywhere to
+     travel — as its own grid row, the action bar had none. */
+  .sheet{
+    display:flex;flex-direction:column;gap:22px;
+    grid-area:panel;min-width:0;
+  }
+
+  /* The one part of the page that says what you actually get. It sat at the
+     bottom of a column that scrolls, so on a short window it was never on
+     screen at the moment someone decided whether the poster was finished.
+
+     Full-bleed and fixed, so it is over everything rather than inside one
+     column — which is also the only way the sign-up link gets the far right of
+     the page rather than the far right of a 400px column, where it simply
+     wrapped under the button. */
+  .actions-area{
+    position:fixed;left:0;right:0;bottom:0;z-index:20;
+    display:block;margin:0;padding:0;
+    background:rgba(5,5,5,.7);
+    backdrop-filter:blur(16px) saturate(140%);
+    -webkit-backdrop-filter:blur(16px) saturate(140%);
+    border-top:1px solid rgba(255,255,255,.07);
+  }
+  /* Same measure and gutters as .layout, so the buttons start where the panel
+     starts and the link ends where the poster ends. */
+  .actions-bar{
+    display:flex;align-items:center;flex-wrap:wrap;gap:10px 16px;
+    max-width:1240px;margin:0 auto;padding:12px clamp(20px,5vw,72px);
+  }
+  .actions-bar .ticket-line{margin-left:auto;margin-top:0}
+  /* Room under the fold for the bar, or it covers the end of the panel. */
+  .layout{padding-bottom:112px}
+}
+
+@media (max-width:880px){
+  /* Phone layout: the poster is pinned to the top and the controls become a
+     sheet that slides up over the bottom. The poster *shrinks* as the sheet
+     opens rather than being covered by it — the whole point of editing here is
+     watching the thing change, so it stays fully visible either way. */
+  /* One number for the sheet's height, so the poster area can be derived from
+     it. Written twice they drift, and the poster ends up clipped by the sheet. */
+  .layout{display:block;padding:0;min-height:100dvh;--sheet-h:63dvh}
+
+  .preview{
+    position:fixed;left:0;right:0;top:0;z-index:1;
+    height:calc(100dvh - 104px);display:flex;align-items:center;justify-content:center;
+    padding:calc(52px + env(safe-area-inset-top)) 16px 6px;
+    transition:height .34s cubic-bezier(.22,.9,.25,1);
+  }
+  body.sheet-open .preview{height:calc(100dvh - var(--sheet-h));padding-top:calc(14px + env(safe-area-inset-top))}
+  .preview-label,.hint{display:none}
+  /* Both dimensions auto with the ratio pinned, so the card fits inside
+     whichever bound it hits first. An explicit height:100% wins over max-width
+     and letterboxes the poster inside an oversized frame. */
+  .badge-card{height:auto;width:auto;max-width:100%;max-height:100%;aspect-ratio:1080/1350}
+  #previewCanvas{display:block;width:100%;height:auto}
+
+  .sheet{
+    display:flex;flex-direction:column;
+    position:fixed;left:0;right:0;bottom:0;z-index:5;
+    max-height:63dvh;overscroll-behavior:contain;
+    /* overflow-y:auto alone computes overflow-x to auto as well, which turns the
+       sheet into a horizontal scroll container — nothing overflows, but a touch
+       drag still slides it sideways. */
+    overflow-y:auto;overflow-x:hidden;
+    background:#0A0A0A;border-top:1px solid var(--input-border);
+    border-radius:20px 20px 0 0;box-shadow:0 -20px 60px rgba(0,0,0,.75);
+    /* No bottom padding here: it sits *below* the sticky bar inside the
+       scrollport, and content scrolls into that gap. The bar carries it. */
+    padding:0 18px;
+    transform:translateY(calc(100% - var(--peek)));
+    transition:transform .36s cubic-bezier(.22,.9,.25,1);
+    --peek:62px;
+  }
+  body.sheet-open .sheet{transform:none}
+
+  /* The grab bar stays put while the rest scrolls under it. */
+  .sheet__grab{
+    display:flex;flex-direction:column;align-items:center;gap:5px;
+    position:sticky;top:0;z-index:2;
+    margin:0 -18px;padding:9px 0 11px;
+    background:#0A0A0A;border:none;cursor:pointer;
+    color:var(--text-dim);font-family:var(--font);font-size:12px;font-weight:500;
+  }
+  .sheet__grab i{display:block;width:38px;height:4px;border-radius:2px;background:#3A3A3A}
+  .sheet__grab:active i{background:var(--accent)}
+
+  .panel{padding-top:4px;gap:16px}
+  .thumb{max-width:none}
+
+  /* Centred above the poster with the editor closed, and out of the way once it
+     opens — the top band is worth more as poster than as a second wordmark, and
+     the poster carries the mark anyway. */
+  .brand{
+    position:fixed;z-index:3;margin:0;pointer-events:none;
+    top:calc(14px + env(safe-area-inset-top));left:50%;
+    transform:translateX(-50%);
+  }
+  .brand-mark{width:96px}
+  body.sheet-open .brand{opacity:0;transform:translateX(-50%) translateY(-10px)}
+
+  /* The download button stays put while the rest of the sheet scrolls under it. */
+  .actions-area{
+    position:sticky;bottom:0;z-index:2;
+    margin:6px -18px 0;padding:12px 18px calc(16px + env(safe-area-inset-bottom));
+    background:#0A0A0A;
+  }
+  /* A short fade above it, so fields scroll out of sight rather than being
+     chopped off by a hard edge. The bar itself has to stay opaque — a gradient
+     across the whole thing let the upload button show through the CTA. */
+  .actions-area::before{
+    content:"";position:absolute;left:0;right:0;bottom:100%;height:22px;
+    background:linear-gradient(rgba(10,10,10,0),#0A0A0A);pointer-events:none;
+  }
+  .actions .cta{flex:1;padding:15px 12px}
+  .ticket-line{margin-top:8px}
+
+  /* Collapsed, the handle is the one thing on screen asking to be tapped, so it
+     looks like a button instead of a hint. */
+  /* Collapsed, the sheet leaves the screen entirely and a separate pill invites
+     it back. The pill has to live *outside* the sheet: the sheet is moved with a
+     transform, and a transformed ancestor becomes the containing block for
+     position:fixed — put the pill inside and it slides off-screen with it. */
+  body:not(.sheet-open) .sheet{
+    transform:translateY(100%);
+    background:transparent;border-top:none;box-shadow:none;
+  }
+  body:not(.sheet-open) .sheet__grab{visibility:hidden}
+
+  /* Both actions stay reachable with the editor closed. Edit is the yellow one,
+     so saving never looks like the thing you are being pushed toward. */
+  .dock{
+    display:flex;gap:8px;justify-content:center;align-items:center;
+    position:fixed;z-index:6;left:0;right:0;
+    bottom:calc(20px + env(safe-area-inset-bottom));
+    padding:0 18px;
+  }
+  .dock button{
+    display:inline-flex;align-items:center;gap:8px;
+    border-radius:999px;padding:14px 22px;border:none;cursor:pointer;
+    font-family:var(--font);font-size:14px;font-weight:600;white-space:nowrap;
+  }
+  .dock button svg{width:17px;height:17px;flex:0 0 auto}
+  .dock__edit{background:var(--accent);color:#0B0B0B;box-shadow:0 10px 30px rgba(var(--accent-rgb),.26)}
+  .dock__save{
+    background:rgba(18,18,18,.92);color:#fff;border:1px solid var(--input-border);
+    backdrop-filter:blur(8px);box-shadow:0 10px 30px rgba(0,0,0,.5);
+  }
+  .dock__save:disabled{opacity:.6;cursor:wait}
+  body.sheet-open .dock{
+    opacity:0;pointer-events:none;transform:translateY(14px);
+  }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .attention,.attention::after{animation:none}
+}
+
+/* ============================================================
+   Motion
+   The page is a tool, not a showreel: the job of the animation is
+   to make the poster feel like it assembles itself once, then get
+   out of the way. Everything below animates only transform and
+   opacity, and every rule is inside the reduced-motion guard.
+   ============================================================ */
+
+.segmented{position:relative}
+
+@media (prefers-reduced-motion: no-preference){
+
+  /* ---------- load choreography ----------
+     The controls deal in from the left while the poster rises and
+     settles. Nothing starts until JS adds .ready, which waits for
+     the webfont and the first canvas frame — otherwise the panel
+     would animate in around an empty white rectangle. */
+  body:not(.ready) .panel > *,
+  body:not(.ready) .actions-area,
+  body:not(.ready) .preview{opacity:0}
+
+  @keyframes deal{
+    from{opacity:0;transform:translate3d(-14px,6px,0)}
+    to{opacity:1;transform:none}
+  }
+  @keyframes settle{
+    from{opacity:0;transform:translate3d(0,22px,0) scale(.965)}
+    to{opacity:1;transform:none}
+  }
+  @keyframes shadow-bloom{
+    from{box-shadow:0 0 0 rgba(0,0,0,0), 0 0 0 1px rgba(255,255,255,0)}
+    to{box-shadow:0 30px 90px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.055)}
+  }
+
+  body.ready .panel > *,
+  body.ready .actions-area{
+    animation:deal .5s cubic-bezier(.22,.8,.25,1) backwards;
+    animation-delay:calc(var(--i,0) * 55ms + 60ms);
+  }
+  /* The poster leads — it is what people came for. */
+  body.ready .preview{animation:settle .72s cubic-bezier(.22,.9,.25,1) backwards}
+  body.ready .badge-card{animation:shadow-bloom .9s ease-out backwards;animation-delay:.2s}
+
+  /* ---------- hover / press ---------- */
+  .cta{transition:background .18s,color .18s,transform .18s cubic-bezier(.22,.8,.25,1),box-shadow .22s}
+  .cta:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(var(--accent-rgb),.22)}
+  .cta--ghost:hover{box-shadow:0 8px 22px rgba(0,0,0,.4)}
+  .cta:active{transform:translateY(0) scale(.985)}
+  /* The glyph is a download arrow, so let it dip toward the baseline. */
+  .cta svg{transition:transform .22s cubic-bezier(.22,.8,.25,1)}
+  .cta:hover svg{transform:translateY(2px)}
+
+  .photo-btn{transition:background .18s,color .18s,transform .18s}
+  .photo-btn:hover{transform:translateY(-1px)}
+
+  .chip span{transition:border-color .18s,color .18s,background .18s,transform .18s}
+  .chip:hover input:not(:checked)+span{border-color:#3E3E3E;color:#fff;transform:translateY(-1px)}
+
+  .card-overlay{transition:opacity .28s cubic-bezier(.22,.8,.25,1)}
+  .card-cta{
+    transition:border-color .18s,color .18s,transform .28s cubic-bezier(.22,.8,.25,1),opacity .28s;
+    transform:translateY(8px);opacity:0;
+  }
+  .card-overlay.is-on .card-cta,.card-overlay:focus-within .card-cta{transform:none;opacity:1}
+  .card-overlay.is-on .card-cta:nth-child(2){transition-delay:.05s}
+  .card-cta:hover{transform:translateY(-1px)}
+  .card-hint{transition:color .2s,opacity .28s,transform .28s cubic-bezier(.22,.8,.25,1);transform:translateY(8px);opacity:0}
+  .card-overlay.is-on .card-hint{transform:none;opacity:1;transition-delay:.1s}
+  .upload-bar__track i{transition:width .18s linear}
+
+  .thumb img{transition:transform .35s cubic-bezier(.22,.8,.25,1),filter .25s}
+  .thumb:hover img{transform:scale(1.08)}
+  .thumb[aria-checked="true"] img{filter:saturate(1.06)}
+
+  .field input[type=text]{transition:border-color .18s,box-shadow .18s}
+  .field input[type=text]:focus{box-shadow:0 0 0 3px rgba(var(--accent-rgb),.12)}
+
+  .ticket-line a{background-image:linear-gradient(var(--accent),var(--accent));
+    background-size:0 1px;background-repeat:no-repeat;background-position:0 100%;
+    border-bottom-color:transparent;transition:background-size .3s cubic-bezier(.22,.8,.25,1)}
+  .ticket-line a:hover{background-size:100% 1px}
+
+  /* The format pill slides rather than blinking from one side to the other. */
+  .segmented::before{
+    content:"";position:absolute;top:5px;left:5px;
+    width:calc(50% - 5px);height:calc(100% - 10px);
+    background:var(--accent);border-radius:8px;
+    transition:transform .34s cubic-bezier(.22,.9,.25,1);
+  }
+  .segmented[data-mode="video"]::before{transform:translateX(100%)}
+  .seg span{position:relative;z-index:1;transition:color .22s,transform .22s}
+  .seg input:checked + span{background:transparent}
+
+  /* Hovering the side you are not on: a ghost fills behind it, its label lifts,
+     and the pill leans that way — the control shows you where it is about to go
+     before you commit to the click. */
+  .seg span::after{
+    content:"";position:absolute;inset:0;border-radius:8px;z-index:-1;
+    background:rgba(255,255,255,.07);opacity:0;transform:scale(.9);
+    transition:opacity .22s,transform .28s cubic-bezier(.22,.8,.25,1);
+  }
+  .seg:hover input:not(:checked) + span::after{opacity:1;transform:scale(1)}
+  .seg:hover input:not(:checked) + span{color:#fff;transform:translateY(-1px)}
+  .seg span svg{transition:transform .28s cubic-bezier(.22,.8,.25,1)}
+  .seg:hover span svg{transform:scale(1.12) rotate(-4deg)}
+
+  .segmented[data-mode="image"]:has(.seg:last-child:hover)::before{transform:translateX(9px)}
+  .segmented[data-mode="video"]:has(.seg:first-child:hover)::before{transform:translateX(calc(100% - 9px))}
+
+  /* ---------- dropdown ---------- */
+  .combo__chev svg{transition:transform .3s cubic-bezier(.22,.9,.25,1)}
+  .combo.is-open .combo__chev svg{transform:rotate(180deg)}
+  .combo__btn{transition:border-color .18s,box-shadow .18s,background .18s}
+
+  /* Hover: an accent bar wipes down the left edge, a sheen crosses once, the
+     chevron dips toward the list it is about to open, and the date warms. */
+  .combo__btn::before{transition:transform .3s cubic-bezier(.22,.9,.25,1)}
+  .combo__btn:hover::before,.combo.is-open .combo__btn::before{transform:scaleY(1)}
+  .combo__btn::after{transition:transform .55s cubic-bezier(.3,.7,.3,1)}
+  .combo__btn:hover::after{transform:translateX(120%)}
+  .combo__btn:hover{box-shadow:0 6px 20px rgba(0,0,0,.45)}
+  .combo__value b,.combo__value em{transition:color .2s,transform .26s cubic-bezier(.22,.8,.25,1)}
+  .combo__btn:hover .combo__value b{transform:translateX(3px)}
+  .combo__btn:hover .combo__value em{color:var(--accent);transform:translateX(3px)}
+  .combo__chev{transition:transform .26s cubic-bezier(.22,.8,.25,1),color .2s}
+  .combo__btn:hover .combo__chev{transform:translateY(2px);color:var(--accent)}
+  .combo.is-open .combo__btn:hover .combo__chev{transform:none}
+  .combo__opt{transition:background .16s}
+
+  /* The panel unfolds from the top edge and the rows deal in behind it. */
+  .combo__list{
+    opacity:0;transform:translateY(-8px) scaleY(.96);transform-origin:top center;
+    transition:opacity .18s ease,transform .26s cubic-bezier(.22,.9,.25,1);
+  }
+  .combo.is-open .combo__list{opacity:1;transform:none}
+  .combo__opt{opacity:0;transform:translateY(-6px)}
+  .combo.is-open .combo__opt{
+    opacity:1;transform:none;
+    transition:opacity .26s ease,transform .3s cubic-bezier(.22,.9,.25,1),background .16s;
+    transition-delay:calc(var(--i,0) * 26ms + 40ms);
+  }
+}
+
+/* Reduced motion keeps the pill, drops every movement. */
+@media (prefers-reduced-motion: reduce){
+  .segmented::before{content:none}
+}

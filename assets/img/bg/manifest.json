@@ -1,0 +1,82 @@
+{
+  "_comment": "Background options per event id. First entry is the default. Add a file to this list and it appears in the picker — nothing else needs editing. Entries in _shared are appended to every event, and _shared[0] is what the poster wears before an event is chosen. An event with no entry here falls back to probing <id>.avif/.jpg/.png/.webp, then to `default`.",
+  "_shared": [
+    {
+      "file": "neutral-1.png",
+      "label": "Ember"
+    },
+    {
+      "file": "leaf.jpg",
+      "label": "Leaf"
+    },
+    {
+      "file": "neutral-2.png",
+      "label": "Glow"
+    },
+    {
+      "file": "neutral-3.png",
+      "label": "Onyx"
+    }
+  ],
+  "dusseldorf": [
+    {
+      "file": "dusseldorf.jpg",
+      "label": "Medienhafen"
+    },
+    {
+      "file": "dusseldorf-2.jpg",
+      "label": "Gehry Buildings"
+    },
+    {
+      "file": "dusseldorf-3.jpg",
+      "label": "Rheinturm"
+    },
+    {
+      "file": "dusseldorf-4.jpg",
+      "label": "Johanneskirche"
+    }
+  ],
+  "hamburg": [
+    {
+      "file": "hamburg.jpg",
+      "label": "Elbphilharmonie"
+    },
+    {
+      "file": "hamburg-2.jpg",
+      "label": "Skyline"
+    },
+    {
+      "file": "hamburg-3.jpg",
+      "label": "Alster"
+    }
+  ],
+  "munich-climate-week": [
+    {
+      "file": "munich.jpg",
+      "label": "Frauenkirche"
+    },
+    {
+      "file": "munich-2.jpg",
+      "label": "Marienplatz"
+    },
+    {
+      "file": "munich-3.jpg",
+      "label": "Old Town Hall"
+    }
+  ],
+  "conference": [
+    {
+      "file": "munich-2.jpg",
+      "label": "Marienplatz"
+    },
+    {
+      "file": "munich.jpg",
+      "label": "Frauenkirche"
+    },
+    {
+      "file": "munich-3.jpg",
+      "label": "Old Town Hall"
+    }
+  ],
+  "default": []
+}
